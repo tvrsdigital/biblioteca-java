@@ -1,0 +1,10 @@
+# Saída de compilação do Maven
+target/
+
+# Banco de dados local (é gerado pelo programa)
+*.db
+
+# Arquivos de IDE e do sistema
+.vscode/
+*.log
+Thumbs.db
