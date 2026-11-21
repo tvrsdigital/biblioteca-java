@@ -21,7 +21,7 @@ import br.com.biblioteca.service.EmprestimoService;
 import br.com.biblioteca.service.ObraService;
 
 /** Painel inicial com os indicadores da biblioteca. */
-public class InicioPanel extends JPanel {
+public class InicioPanel extends PainelTela {
 
     private static final long serialVersionUID = 1L;
 
@@ -61,7 +61,7 @@ public class InicioPanel extends JPanel {
         areaCartoes.add(grade, BorderLayout.NORTH);      // NORTH respeita a altura preferida
         add(areaCartoes, BorderLayout.CENTER);    
     }
-
+    @Override 
     /** Recalcula os números. Chamado sempre que o painel é exibido. */
     public void atualizar() {
         try {

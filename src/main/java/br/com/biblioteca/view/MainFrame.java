@@ -5,7 +5,10 @@ import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Insets;
+import java.util.HashMap;
+import java.util.Map;
 
+import javax.swing.AbstractButton;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -23,9 +26,9 @@ import com.formdev.flatlaf.FlatClientProperties;
 import br.com.biblioteca.model.Funcionario;
 
 /**
- * Janela principal: barra lateral de navegação + área de conteúdo.
- * A área de conteúdo usa CardLayout: vários painéis empilhados,
- * e só um aparece de cada vez (como as abas de um fichário).
+ * Janela principal: barra lateral de navegação + área de conteúdo (CardLayout).
+ * As telas ficam num Map<String, PainelTela>: ao exibir uma, chamamos atualizar()
+ * sem saber qual tela é -> POLIMORFISMO.
  */
 public class MainFrame extends JFrame {
 
@@ -40,22 +43,21 @@ public class MainFrame extends JFrame {
     private final Funcionario funcionarioLogado;   // RN09: quem registra os empréstimos
     private final CardLayout cartoes = new CardLayout();
     private final JPanel conteudo = new JPanel(cartoes);
+    private final Map<String, PainelTela> telas = new HashMap<>();
     private final ButtonGroup grupoMenu = new ButtonGroup();
-    private final InicioPanel inicioPanel;
     private JButton botaoTema;
 
     public MainFrame(Funcionario funcionarioLogado) {
         super("Sistema de Biblioteca");
         this.funcionarioLogado = funcionarioLogado;
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setMinimumSize(new Dimension(1120, 680));
+        setMinimumSize(new Dimension(1200, 700));
 
-        inicioPanel = new InicioPanel(funcionarioLogado);
-        conteudo.add(inicioPanel, "inicio");
-        conteudo.add(new EmConstrucaoPanel("Leitores"), "leitores");
-        conteudo.add(new EmConstrucaoPanel("Obras e cópias"), "obras");
-        conteudo.add(new EmConstrucaoPanel("Empréstimos"), "emprestimos");
-        conteudo.add(new EmConstrucaoPanel("Reservas"), "reservas");
+        registrarTela("inicio", new InicioPanel(funcionarioLogado));
+        registrarTela("leitores", new LeitoresPanel());
+        registrarTela("obras", new EmConstrucaoPanel("Obras e cópias"));
+        registrarTela("emprestimos", new EmConstrucaoPanel("Empréstimos"));
+        registrarTela("reservas", new EmConstrucaoPanel("Reservas"));
 
         setLayout(new BorderLayout());
         add(montarBarraLateral(), BorderLayout.WEST);
@@ -69,11 +71,14 @@ public class MainFrame extends JFrame {
         return funcionarioLogado;
     }
 
-    /** Exibe um dos painéis do CardLayout pelo nome. */
+    private void registrarTela(String nome, PainelTela tela) {
+        telas.put(nome, tela);
+        conteudo.add(tela, nome);
+    }
+
+    /** Exibe uma tela pelo nome, atualizando seus dados antes. */
     private void mostrar(String nome) {
-        if (nome.equals("inicio")) {
-            inicioPanel.atualizar();   // números sempre atualizados
-        }
+        telas.get(nome).atualizar();   // POLIMORFISMO: cada tela atualiza do seu jeito
         cartoes.show(conteudo, nome);
     }
 
@@ -149,11 +154,11 @@ public class MainFrame extends JFrame {
         return barra;
     }
 
-    private JToggleButton criarItemMenu(String texto, String cartao) {
+    private JToggleButton criarItemMenu(String texto, String nomeTela) {
         JToggleButton item = new JToggleButton(texto);
         configurarBotaoBarra(item);
         grupoMenu.add(item);   // ButtonGroup: só um selecionado por vez
-        item.addActionListener(e -> mostrar(cartao));
+        item.addActionListener(e -> mostrar(nomeTela));
         return item;
     }
 
@@ -163,7 +168,8 @@ public class MainFrame extends JFrame {
         return botao;
     }
 
-    private void configurarBotaoBarra(javax.swing.AbstractButton botao) {
+    // AbstractButton é a mãe de JButton e JToggleButton: um método serve aos dois
+    private void configurarBotaoBarra(AbstractButton botao) {
         botao.putClientProperty(FlatClientProperties.STYLE, ESTILO_ITEM_MENU);
         botao.setHorizontalAlignment(SwingConstants.LEFT);
         botao.setMargin(new Insets(9, 14, 9, 14));
