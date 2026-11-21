@@ -1,42 +1,43 @@
 package br.com.biblioteca;
 
-import java.sql.Connection;
 import java.sql.SQLException;
 
-import br.com.biblioteca.dao.ConexaoFactory;
+import br.com.biblioteca.dao.FuncionarioDAO;
 import br.com.biblioteca.dao.InicializadorBanco;
 import br.com.biblioteca.dao.LeitorDAO;
-import br.com.biblioteca.model.Aluno;
+import br.com.biblioteca.model.Funcionario;
 import br.com.biblioteca.model.Leitor;
-import br.com.biblioteca.model.Professor;
 
 public class App {
     public static void main(String[] args) {
-        // O main faz o papel da "UI" por enquanto: é ele que CAPTURA
-        // as exceções e mostra uma mensagem ao usuário.
-        try (Connection conexao = ConexaoFactory.getConexao()) {
-            System.out.println("Conectado ao SQLite "
-                + conexao.getMetaData().getDatabaseProductVersion());
-
-            // Cria as tabelas (só na primeira vez; depois não faz nada)
+        try {
             InicializadorBanco.criarTabelas();
-            System.out.println("Tabelas criadas/verificadas.");
 
-            LeitorDAO dao = new LeitorDAO();
+            FuncionarioDAO funcionarioDAO = new FuncionarioDAO();
 
-            // Salva uma aluna e mostra o id que o banco gerou
-            Aluno ana = new Aluno("Ana", "111.111.111-11", "ana@email.com", "1199999", "A001");
-            dao.salvar(ana);
-            System.out.println("Ana salva com id " + ana.getId());
+            // Só cadastra o admin se ele ainda não existir
+            if (funcionarioDAO.buscarPorLogin("admin") == null) {
+                // "hash-provisorio" e "salt-provisorio" são temporários:
+                // o hash de verdade será criado no passo das senhas.
+                Funcionario admin = new Funcionario("Administrador", "000.000.000-00",
+                    "admin@biblioteca.com", "0000000", "Bibliotecário",
+                    "admin", "hash-provisorio", "salt-provisorio");
+                funcionarioDAO.salvar(admin);
+                System.out.println("Admin cadastrado com id " + admin.getId());
+            } else {
+                System.out.println("Admin já existia, nada a fazer.");
+            }
 
-            // Salva um professor
-            dao.salvar(new Professor("Carlos", "222.222.222-22", "carlos@email.com", "1188888", "P001"));
+            // Busca pelo login e mostra os dados
+            Funcionario encontrado = funcionarioDAO.buscarPorLogin("admin");
+            System.out.println("Encontrado: " + encontrado + " - " + encontrado.getCargo());
 
-            // Lê tudo de volta do banco: os objetos voltam como Aluno e Professor,
-            // e o polimorfismo continua funcionando (prazo 7 e 14)
-            for (Leitor l : dao.listarTodos()) {
-                System.out.println(l.getId() + " - " + l + " (" + l.getTipo()
-                    + "), prazo " + l.getPrazoDias());
+            // Busca um login que não existe
+            System.out.println("Login 'fulano': " + funcionarioDAO.buscarPorLogin("fulano"));
+
+            // Os leitores do teste anterior continuam no banco
+            for (Leitor l : new LeitorDAO().listarTodos()) {
+                System.out.println("Leitor: " + l + " (" + l.getTipo() + ")");
             }
 
         } catch (SQLException e) {
