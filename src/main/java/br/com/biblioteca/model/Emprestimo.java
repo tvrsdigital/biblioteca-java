@@ -31,8 +31,8 @@ public class Emprestimo {
     }
 
     //construtor banco 
-    public Emprestimo(Integer id, Leitor leitor, Copia copia, Funcionario funcionario, LocalDate dataPrevista,
-            LocalDate dataEmprestimo, LocalDate dataDevolucao, BigDecimal multa) {
+    public Emprestimo(Integer id, Leitor leitor, Copia copia, Funcionario funcionario, LocalDate dataEmprestimo,
+            LocalDate dataPrevista, LocalDate dataDevolucao, BigDecimal multa) {
         this.id = id;
         this.leitor = leitor;
         this.copia = copia;
