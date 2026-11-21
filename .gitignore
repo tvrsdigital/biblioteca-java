@@ -8,3 +8,6 @@ target/
 .vscode/
 *.log
 Thumbs.db
+
+# Pasta criada por extensão do VSCode (não faz parte do projeto)
+.github/modernize/
