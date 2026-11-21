@@ -83,3 +83,23 @@
 ## D21 – O service decide entre inserir e atualizar
 **Decisão:** os services de cadastro têm um único método `salvar`, que chama `INSERT` quando o id do objeto é `null` e `UPDATE` quando o id existe.
 **Motivo:** a tela não precisa saber se o registro é novo ou existente. Isso aproveita a decisão D09 (`id` como `Integer`, com `null` significando "ainda não salvo").
+
+## D22 – FlatLaf, com tema claro/escuro e identidade em verde oliva
+**Decisão:** a interface usa a biblioteca FlatLaf (`com.formdev:flatlaf` 3.7) no lugar do visual padrão do Swing, com cor de destaque verde oliva e botão para alternar entre tema claro e escuro em tempo real.
+**Motivo:** o visual padrão do Swing (Metal) é datado e igual ao da maioria dos trabalhos. A FlatLaf moderniza todos os componentes com poucas linhas de código, sem exigir desenho manual de cada um. Foi descartado o Nimbus (já incluso no Java) por oferecer menos personalização e não ter tema escuro.
+
+## D23 – Telas herdam da classe abstrata PainelTela
+**Decisão:** toda tela da barra lateral estende `PainelTela`, que declara o método abstrato `atualizar()` e oferece o método herdado `criarCabecalho(...)`. A `MainFrame` guarda as telas num `Map<String, PainelTela>` e chama `atualizar()` ao exibir qualquer uma.
+**Motivo:** a janela principal não precisa conhecer cada tela (polimorfismo), e adicionar uma tela nova não exige alterar a lógica de navegação. O cabeçalho padrão fica escrito uma única vez.
+
+## D24 – ModeloTabela<T> genérico (Template Method)
+**Decisão:** os modelos de tabela estendem a classe abstrata genérica `ModeloTabela<T>`, que gerencia a lista, as linhas e os nomes das colunas. Cada subclasse implementa apenas `valorDaColuna(item, coluna)`.
+**Motivo:** evita repetir um `AbstractTableModel` completo para cada entidade (leitores, obras, cópias, empréstimos, reservas). O `LeitorTableModel` foi refatorado para usar a nova base sem mudar o comportamento da tela.
+
+## D25 – Componentes desenhados por código
+**Decisão:** o painel de marca do login, os cartões de indicadores, o fundo dos formulários e os selos de situação nas tabelas são desenhados com `paintComponent` e `Graphics2D`, em classes que estendem componentes Swing (`JPanel`, `DefaultTableCellRenderer`).
+**Motivo:** dá identidade visual ao sistema e destaca informações (situação de cópias, empréstimos e reservas) por cor. Também serve de exemplo de herança e sobrescrita aplicadas à interface.
+
+## D26 – Formatação de datas e moeda somente na view
+**Decisão:** o banco e o model trabalham com formatos técnicos (datas ISO `2026-11-28`, valores `3.00`); a conversão para o formato brasileiro (`28/11/26`, `R$ 3,00`) é feita apenas nas telas, com `DateTimeFormatter` e `NumberFormat`.
+**Motivo:** formatação é uma questão de apresentação. Mantê-la na view evita que mudanças visuais afetem regras de negócio ou o armazenamento, e respeita a separação de responsabilidades entre as camadas.
