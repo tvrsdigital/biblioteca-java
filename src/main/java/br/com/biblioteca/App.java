@@ -2,43 +2,53 @@ package br.com.biblioteca;
 
 import java.sql.SQLException;
 
-import br.com.biblioteca.dao.FuncionarioDAO;
+import br.com.biblioteca.dao.CopiaDAO;
 import br.com.biblioteca.dao.InicializadorBanco;
-import br.com.biblioteca.dao.LeitorDAO;
-import br.com.biblioteca.model.Funcionario;
-import br.com.biblioteca.model.Leitor;
+import br.com.biblioteca.dao.ObraDAO;
+import br.com.biblioteca.model.Copia;
+import br.com.biblioteca.model.Obra;
+import br.com.biblioteca.model.SituacaoCopia;
 
 public class App {
     public static void main(String[] args) {
         try {
             InicializadorBanco.criarTabelas();
 
-            FuncionarioDAO funcionarioDAO = new FuncionarioDAO();
+            ObraDAO obraDAO = new ObraDAO();
+            CopiaDAO copiaDAO = new CopiaDAO();
 
-            // Só cadastra o admin se ele ainda não existir
-            if (funcionarioDAO.buscarPorLogin("admin") == null) {
-                // "hash-provisorio" e "salt-provisorio" são temporários:
-                // o hash de verdade será criado no passo das senhas.
-                Funcionario admin = new Funcionario("Administrador", "000.000.000-00",
-                    "admin@biblioteca.com", "0000000", "Bibliotecário",
-                    "admin", "hash-provisorio", "salt-provisorio");
-                funcionarioDAO.salvar(admin);
-                System.out.println("Admin cadastrado com id " + admin.getId());
+            // Só cadastra se ainda não houver obras
+            if (obraDAO.listarTodos().isEmpty()) {
+                Obra obra = new Obra("Dom Casmurro", "Machado de Assis", "Garnier", 1899, "978-85-0000-000-0");
+                obraDAO.salvar(obra);              // 1º salva a obra, para ela ganhar um id
+
+                Copia c1 = new Copia("C001");
+                Copia c2 = new Copia("C002");
+                obra.adicionarCopia(c1);           // 2º liga as cópias à obra
+                obra.adicionarCopia(c2);
+                copiaDAO.salvar(c1);               // 3º salva as cópias (usam o id da obra)
+                copiaDAO.salvar(c2);
+                System.out.println("Obra e cópias cadastradas.");
+            }
+
+            // Lê tudo do banco: as obras voltam com as cópias dentro
+            for (Obra o : obraDAO.listarTodos()) {
+                System.out.println(o + " - " + o.getCopias().size() + " cópias, disponível? "
+                    + o.temCopiaDisponivel());
+                for (Copia c : o.getCopias()) {
+                    System.out.println("   " + c + " [" + c.getSituacao() + "]");
+                }
+            }
+
+            // Busca uma cópia pelo id, alterna a situação e salva
+            Copia copia = copiaDAO.buscarPorId(1);
+            if (copia.isDisponivel()) {
+                copia.setSituacao(SituacaoCopia.EMPRESTADA);
             } else {
-                System.out.println("Admin já existia, nada a fazer.");
+                copia.setSituacao(SituacaoCopia.DISPONIVEL);
             }
-
-            // Busca pelo login e mostra os dados
-            Funcionario encontrado = funcionarioDAO.buscarPorLogin("admin");
-            System.out.println("Encontrado: " + encontrado + " - " + encontrado.getCargo());
-
-            // Busca um login que não existe
-            System.out.println("Login 'fulano': " + funcionarioDAO.buscarPorLogin("fulano"));
-
-            // Os leitores do teste anterior continuam no banco
-            for (Leitor l : new LeitorDAO().listarTodos()) {
-                System.out.println("Leitor: " + l + " (" + l.getTipo() + ")");
-            }
+            copiaDAO.atualizar(copia);
+            System.out.println("Cópia " + copia + " agora está " + copia.getSituacao());
 
         } catch (SQLException e) {
             System.out.println("Erro no banco de dados: " + e.getMessage());
