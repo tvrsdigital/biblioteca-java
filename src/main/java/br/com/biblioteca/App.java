@@ -22,6 +22,9 @@ import br.com.biblioteca.model.Reserva;
 import br.com.biblioteca.model.SituacaoCopia;
 import br.com.biblioteca.service.AutenticacaoService;
 import br.com.biblioteca.service.EmprestimoService;
+import br.com.biblioteca.service.LeitorService;
+import br.com.biblioteca.service.ObraService;
+import br.com.biblioteca.service.ReservaService;
 import br.com.biblioteca.util.SenhaUtil;
 
 public class App {
@@ -100,6 +103,28 @@ public class App {
                 System.out.println("   OK! Situação da reserva: "
                     + new ReservaDAO().listarTodas().get(0).getSituacao());
             });
+
+                    LeitorService leitorService = new LeitorService();
+        ObraService obraService = new ObraService();
+        ReservaService reservaService = new ReservaService();
+
+        tentar("9. Cadastrar leitor com matrícula repetida",
+            () -> leitorService.salvar(new Aluno("Bruno", "333.333.333-33", "b@email.com", "", "A001")));
+
+        tentar("10. Cadastrar cópia com código repetido",
+            () -> obraService.adicionarCopia(obraService.listarTodas().get(0), "c001"));
+
+        tentar("11. Ana reserva o Dom Casmurro (todas as cópias emprestadas)",
+            () -> {
+                reservaService.reservar(ana, obraService.listarTodas().get(0), HOJE);
+                System.out.println("   OK! Ana entrou na fila");
+            });
+
+        tentar("12. Ana reserva de novo",
+            () -> reservaService.reservar(ana, obraService.listarTodas().get(0), HOJE));
+
+        tentar("13. Excluir a Ana (tem histórico)",
+            () -> leitorService.excluir(ana));
     }
 
     // ----- Auxiliares do teste -----
