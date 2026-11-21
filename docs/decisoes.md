@@ -27,3 +27,7 @@
 ## D07 – Senha armazenada com hash PBKDF2 e salt
 **Decisão:** a senha nunca é salva em texto puro. O banco guarda apenas o salt (aleatório, um por funcionário) e o hash gerado com PBKDF2WithHmacSHA256. No login, a senha digitada passa pelo mesmo cálculo e os hashes são comparados.
 **Motivo:** se o arquivo do banco vazar, as senhas não podem ser lidas. O salt impede que senhas iguais gerem hashes iguais, e o PBKDF2, por ser lento de propósito, dificulta ataques de força bruta. Foi escolhido em vez de SHA-256 simples (rápido demais para senhas) e de bibliotecas externas como BCrypt, porque já faz parte do Java e não exige dependência nova.
+
+## D08 – Interface gráfica gerada com auxílio de IA
+**Decisão:** o layout das telas Swing foi gerado com auxílio de IA. O tratamento de eventos e de exceções na camada de UI foi implementado e revisado pelo autor.
+**Motivo:** o foco do projeto é o back-end e os conceitos de POO; a geração do layout liberou tempo para essas partes.
