@@ -16,6 +16,10 @@ public class ObraService {
     private final CopiaDAO copiaDAO = new CopiaDAO();
 
     public void salvar(Obra obra) throws NegocioException, SQLException {
+        // ISBN em branco vira null: o UNIQUE do banco não considera nulos repetidos
+        if (obra.getIsbn() != null && obra.getIsbn().isBlank()) {
+        obra.setIsbn(null);
+        }
         if (obra.getTitulo() == null || obra.getTitulo().isBlank()) {
             throw new NegocioException("O título é obrigatório.");
         }

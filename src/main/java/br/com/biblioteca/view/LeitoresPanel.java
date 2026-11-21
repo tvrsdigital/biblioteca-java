@@ -192,7 +192,7 @@ public class LeitoresPanel extends PainelTela {
 
     private void carregarLeitores() {
         try {
-            modelo.setLeitores(leitorService.listarTodos());
+            modelo.setItens(leitorService.listarTodos());
         // >>> TRATAMENTO DE EXCEÇÕES NA UI
         } catch (SQLException e) {
             mostrarErroTecnico(e);
@@ -271,7 +271,7 @@ public class LeitoresPanel extends PainelTela {
         }
         // Com ordenação/filtro, a linha VISUAL pode ser diferente da linha do MODELO
         int linhaModelo = tabela.convertRowIndexToModel(linhaVisual);
-        leitorEmEdicao = modelo.getLeitor(linhaModelo);
+        leitorEmEdicao = modelo.getItem(linhaModelo);
 
         tituloFormulario.setText("Editando: " + leitorEmEdicao.getNome());
         campoNome.setText(leitorEmEdicao.getNome());
