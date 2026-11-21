@@ -67,18 +67,24 @@ classDiagram
         MANUTENCAO
     }
     class Emprestimo {
+        +BigDecimal MULTA_POR_DIA = 1.00$
         -Integer id
         -LocalDate dataEmprestimo
         -LocalDate dataPrevista
         -LocalDate dataDevolucao
         -BigDecimal multa
-        +estaAtrasado() boolean
-        +calcularMulta() BigDecimal
+        +isDevolvido() boolean
+        +estaAtrasado(LocalDate hoje) boolean
+        +calcularMulta(LocalDate data) BigDecimal
+        +registrarDevolucao(LocalDate data) void
     }
     class Reserva {
         -Integer id
         -LocalDate dataReserva
         -SituacaoReserva situacao
+        +isAtiva() boolean
+        +atender() void
+        +cancelar() void
     }
     class SituacaoReserva {
         <<enumeration>>
@@ -119,3 +125,5 @@ classDiagram
 - `getTipo()` permite gravar Aluno e Professor na mesma tabela, com uma coluna `tipo`, sem uso de `instanceof`.
 - A relação Obra–Copia é bidirecional: a Obra mantém a lista de cópias e cada Copia conhece sua Obra. A lista só é alterada por `adicionarCopia()`, que mantém os dois lados consistentes.
 - `Funcionario` guarda apenas o hash e o salt da senha, nunca a senha em texto puro.
+- `Emprestimo` calcula a data prevista com `leitor.getPrazoDias()` (polimorfismo) e recebe as datas como parâmetro nos métodos, o que permite testar atrasos sem depender do relógio.
+- `Emprestimo` e `Reserva` quase não têm setters: seu estado muda apenas por métodos com significado (`registrarDevolucao`, `atender`, `cancelar`). `Reserva` lança `IllegalStateException` se a operação não for permitida na situação atual.

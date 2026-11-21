@@ -10,6 +10,7 @@ import br.com.biblioteca.model.Funcionario;
 import br.com.biblioteca.model.Leitor;
 import br.com.biblioteca.model.Obra;
 import br.com.biblioteca.model.Professor;
+import br.com.biblioteca.model.Reserva;
 import br.com.biblioteca.model.SituacaoCopia;
 
 
@@ -37,6 +38,13 @@ public class App {
 
         e1.registrarDevolucao(dezDiasDepois);
         System.out.println("Multa da Ana: R$ " + e1.getMulta()); // 3 dias de atraso → 3.00
+
+
+        Reserva r = new Reserva(ana, obra, hoje);
+        System.out.println("Reserva ativa? " + r.isAtiva());   // true
+        r.cancelar();
+        System.out.println("Situação: " + r.getSituacao());    // CANCELADA
+        r.atender();  // deve lançar IllegalStateException
     }
 
 }
