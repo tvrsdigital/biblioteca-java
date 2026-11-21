@@ -56,7 +56,7 @@ public class MainFrame extends JFrame {
         registrarTela("inicio", new InicioPanel(funcionarioLogado));
         registrarTela("leitores", new LeitoresPanel());
         registrarTela("obras", new ObrasPanel());
-        registrarTela("emprestimos", new EmConstrucaoPanel("Empréstimos"));
+        registrarTela("emprestimos", new EmprestimosPanel(funcionarioLogado));
         registrarTela("reservas", new EmConstrucaoPanel("Reservas"));
 
         setLayout(new BorderLayout());
