@@ -1,45 +1,125 @@
 package br.com.biblioteca;
 
-import java.sql.SQLException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.LocalDate;
 
+import br.com.biblioteca.dao.CopiaDAO;
+import br.com.biblioteca.dao.EmprestimoDAO;
 import br.com.biblioteca.dao.FuncionarioDAO;
 import br.com.biblioteca.dao.InicializadorBanco;
+import br.com.biblioteca.dao.LeitorDAO;
+import br.com.biblioteca.dao.ObraDAO;
+import br.com.biblioteca.dao.ReservaDAO;
+import br.com.biblioteca.exception.NegocioException;
+import br.com.biblioteca.model.Aluno;
+import br.com.biblioteca.model.Copia;
+import br.com.biblioteca.model.Emprestimo;
 import br.com.biblioteca.model.Funcionario;
+import br.com.biblioteca.model.Obra;
+import br.com.biblioteca.model.Professor;
+import br.com.biblioteca.model.Reserva;
+import br.com.biblioteca.model.SituacaoCopia;
+import br.com.biblioteca.service.AutenticacaoService;
+import br.com.biblioteca.service.EmprestimoService;
 import br.com.biblioteca.util.SenhaUtil;
 
 public class App {
-    public static void main(String[] args) {
+
+    // Data fixa para o teste dar sempre o mesmo resultado
+    private static final LocalDate HOJE = LocalDate.of(2026, 11, 21);
+
+    public static void main(String[] args) throws Exception {
+        // ===== CENÁRIO DE TESTE: recria o banco do zero =====
+        Files.deleteIfExists(Path.of("biblioteca.db"));
+        InicializadorBanco.criarTabelas();
+
+        String salt = SenhaUtil.gerarSalt();
+        new FuncionarioDAO().salvar(new Funcionario("Administrador", "000.000.000-00",
+            "admin@biblioteca.com", "0000000", "Bibliotecário", "admin",
+            SenhaUtil.gerarHash("admin123", salt), salt));
+
+        Aluno ana = new Aluno("Ana", "111.111.111-11", "ana@email.com", "1199999", "A001");
+        Professor carlos = new Professor("Carlos", "222.222.222-22", "carlos@email.com", "1188888", "P001");
+        new LeitorDAO().salvar(ana);
+        new LeitorDAO().salvar(carlos);
+
+        Obra obra = new Obra("Dom Casmurro", "Machado de Assis", "Garnier", 1899, "978-85-0000-000-0");
+        new ObraDAO().salvar(obra);
+        Copia c1 = new Copia("C001");
+        Copia c2 = new Copia("C002");
+        obra.adicionarCopia(c1);
+        obra.adicionarCopia(c2);
+        CopiaDAO copiaDAO = new CopiaDAO();
+        copiaDAO.salvar(c1);
+        copiaDAO.salvar(c2);
+
+        // Empréstimo antigo e atrasado da Ana (gravado direto, só para montar o cenário)
+        Funcionario adminCenario = new FuncionarioDAO().buscarPorLogin("admin");
+        new EmprestimoDAO().salvar(new Emprestimo(ana, c2, adminCenario, LocalDate.of(2026, 11, 1)));
+        c2.setSituacao(SituacaoCopia.EMPRESTADA);
+        copiaDAO.atualizar(c2);
+
+        // Reserva do Carlos para o Dom Casmurro
+        new ReservaDAO().salvar(new Reserva(carlos, obra, HOJE.minusDays(2)));
+        System.out.println("=== Cenário montado ===\n");
+
+        // ===== TESTES DAS REGRAS =====
+        AutenticacaoService auth = new AutenticacaoService();
+        EmprestimoService service = new EmprestimoService();
+
+        tentar("1. Login com senha errada", () -> auth.autenticar("admin", "errada"));
+        Funcionario logado = auth.autenticar("admin", "admin123");
+        System.out.println("2. Login correto: bem-vindo, " + logado + "\n");
+
+        tentar("3. Ana pega a C001 (tem atraso)",
+            () -> service.realizarEmprestimo(ana, copiaDAO.buscarPorId(c1.getId()), logado, HOJE));
+
+        tentar("4. Carlos pega a C001",
+            () -> {
+                Emprestimo e = service.realizarEmprestimo(carlos, copiaDAO.buscarPorId(c1.getId()), logado, HOJE);
+                System.out.println("   OK! Devolver até " + e.getDataPrevista());
+            });
+
+        tentar("5. Carlos pega a C002 (está emprestada)",
+            () -> service.realizarEmprestimo(carlos, copiaDAO.buscarPorId(c2.getId()), logado, HOJE));
+
+        tentar("6. Ana devolve a C002",
+            () -> {
+                Emprestimo e = service.registrarDevolucao(copiaDAO.buscarPorId(c2.getId()), HOJE);
+                System.out.println("   OK! Multa: R$ " + e.getMulta()
+                    + " | C002 agora: " + copiaDAO.buscarPorId(c2.getId()).getSituacao());
+            });
+
+        tentar("7. Ana pega a C002 (reservada para o Carlos)",
+            () -> service.realizarEmprestimo(ana, copiaDAO.buscarPorId(c2.getId()), logado, HOJE));
+
+        tentar("8. Carlos pega a C002 (ele é o primeiro da fila)",
+            () -> {
+                service.realizarEmprestimo(carlos, copiaDAO.buscarPorId(c2.getId()), logado, HOJE);
+                System.out.println("   OK! Situação da reserva: "
+                    + new ReservaDAO().listarTodas().get(0).getSituacao());
+            });
+    }
+
+    // ----- Auxiliares do teste -----
+
+    // Interface funcional: representa "um bloco de código que pode lançar exceções"
+    interface Acao {
+        void executar() throws Exception;
+    }
+
+    // Executa uma ação e mostra a mensagem se uma regra for violada.
+    // É exatamente o que as telas vão fazer, com JOptionPane no lugar do println.
+    private static void tentar(String descricao, Acao acao) {
+        System.out.println(descricao);
         try {
-            InicializadorBanco.criarTabelas();
-            FuncionarioDAO dao = new FuncionarioDAO();
-            Funcionario admin = dao.buscarPorLogin("admin");
-
-            // Substitui o hash provisório por um hash real (só na primeira vez)
-            if (admin.getSalt().equals("salt-provisorio")) {
-                String salt = SenhaUtil.gerarSalt();
-                admin.setSalt(salt);
-                admin.setSenhaHash(SenhaUtil.gerarHash("admin123", salt));
-                dao.atualizar(admin);
-                System.out.println("Senha do admin definida com hash real.");
-            }
-
-            admin = dao.buscarPorLogin("admin");   // relê do banco
-            System.out.println("Salt guardado: " + admin.getSalt());
-            System.out.println("Hash guardado: " + admin.getSenhaHash());
-
-            System.out.println("Senha 'admin123' confere? "
-                + SenhaUtil.verificar("admin123", admin.getSalt(), admin.getSenhaHash()));
-            System.out.println("Senha 'admin124' confere? "
-                + SenhaUtil.verificar("admin124", admin.getSalt(), admin.getSenhaHash()));
-
-            // Mesma senha, salts diferentes = hashes diferentes
-            String s1 = SenhaUtil.gerarSalt();
-            String s2 = SenhaUtil.gerarSalt();
-            System.out.println("Mesma senha, hash 1: " + SenhaUtil.gerarHash("123456", s1));
-            System.out.println("Mesma senha, hash 2: " + SenhaUtil.gerarHash("123456", s2));
-
-        } catch (SQLException e) {
-            System.out.println("Erro no banco de dados: " + e.getMessage());
+            acao.executar();
+        } catch (NegocioException e) {
+            System.out.println("   REGRA: " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("   ERRO TÉCNICO: " + e.getMessage());
         }
+        System.out.println();
     }
 }
