@@ -16,10 +16,6 @@ public class Professor extends Leitor {
     
     //metodos
     @Override
-    public int getPrazoDias() {
-    return PRAZO_DIAS;
-    }
-
     public int getPrazoDias(){
         return PRAZO_DIAS;
     }
