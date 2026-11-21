@@ -67,3 +67,19 @@
 ## D17 – Criação automática das tabelas
 **Decisão:** a classe `InicializadorBanco` cria as tabelas com `CREATE TABLE IF NOT EXISTS` sempre que o programa inicia.
 **Motivo:** o sistema funciona em qualquer máquina sem configuração manual: na primeira execução o arquivo `biblioteca.db` e as tabelas são criados; nas seguintes, nada é alterado. O arquivo do banco não é versionado no Git, pois é gerado pelo próprio programa.
+
+## D18 – NegocioException checked, separada de SQLException
+**Decisão:** violações de regras de negócio são sinalizadas por `NegocioException`, que herda de `Exception` (checked). Falhas técnicas do banco continuam como `SQLException`.
+**Motivo:** por ser checked, o compilador obriga as telas a tratar a exceção, atendendo à exigência de controle de erros perto da UI. Separar regra violada ("leitor com atraso") de falha técnica ("banco indisponível") permite que a tela trate cada caso de forma diferente. Foi descartada uma exceção unchecked, que permitiria a uma tela esquecer o `try/catch` e o programa quebrar diante do usuário.
+
+## D19 – Sem transações entre gravações (limitação consciente)
+**Decisão:** operações com várias gravações (por exemplo, empréstimo + situação da cópia) usam uma conexão por gravação, sem transação.
+**Motivo:** simplicidade no escopo do projeto. O risco é conhecido: se o programa fosse interrompido entre duas gravações, os dados poderiam ficar inconsistentes. A solução profissional seria executar as gravações numa única transação (`setAutoCommit(false)`, `commit` e `rollback`), compartilhando a mesma conexão entre os DAOs.
+
+## D20 – Administrador criado automaticamente
+**Decisão:** ao iniciar, `FuncionarioService.garantirAdministrador()` cria o funcionário `admin` (senha `admin123`) se não houver nenhum funcionário cadastrado.
+**Motivo:** o banco é criado vazio em qualquer máquina nova; sem isso, ninguém conseguiria fazer o primeiro login. A senha inicial é gravada com hash, como todas as outras.
+
+## D21 – O service decide entre inserir e atualizar
+**Decisão:** os services de cadastro têm um único método `salvar`, que chama `INSERT` quando o id do objeto é `null` e `UPDATE` quando o id existe.
+**Motivo:** a tela não precisa saber se o registro é novo ou existente. Isso aproveita a decisão D09 (`id` como `Integer`, com `null` significando "ainda não salvo").
