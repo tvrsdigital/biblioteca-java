@@ -47,3 +47,23 @@
 ## D12 – Relação bidirecional entre Obra e Copia
 **Decisão:** a Obra mantém a lista de suas cópias e cada Copia guarda uma referência à sua Obra. A lista é exposta apenas como somente leitura e alterada só por `adicionarCopia()`.
 **Motivo:** as telas precisam exibir o título da obra a partir de uma cópia, e o DAO precisa saber a qual obra cada cópia pertence. Centralizar a inclusão em `adicionarCopia()` garante que os dois lados da relação fiquem sempre consistentes.
+
+## D13 – Fábrica de conexões (ConexaoFactory)
+**Decisão:** todas as conexões com o banco são obtidas por um único método estático, `ConexaoFactory.getConexao()`, que também liga a verificação de chaves estrangeiras (`PRAGMA foreign_keys = ON`).
+**Motivo:** concentra em um só lugar o endereço do banco e a configuração da conexão. Se o banco mudar (por exemplo, para PostgreSQL), apenas essa classe é alterada. O SQLite não verifica chaves estrangeiras por padrão, e isso precisa ser ligado a cada conexão.
+
+## D14 – Mapeamento da herança para o banco
+**Decisão:** `Pessoa` não tem tabela própria; seus campos aparecem nas tabelas `leitor` e `funcionario` (tabela por classe concreta). `Aluno` e `Professor` dividem a tabela `leitor`, diferenciados pela coluna `tipo` (tabela única).
+**Motivo:** bancos relacionais não têm herança. `Pessoa` é abstrata e nunca existe sozinha. Aluno e Professor têm exatamente os mesmos dados (o que muda entre eles é o comportamento, implementado no Java), então uma tabela única evita duplicação e consultas com junções. O valor da coluna `tipo` vem de `getTipo()`, sem uso de `instanceof`.
+
+## D15 – Tipos de dados no SQLite
+**Decisão:** datas são gravadas como `TEXT` no formato ISO (`2026-11-21`); valores monetários como `TEXT` (`"3.00"`); enums como `TEXT` com o nome da constante.
+**Motivo:** o SQLite tem poucos tipos nativos. O formato ISO é o usado por `LocalDate.toString()` e `LocalDate.parse()` e ordena corretamente como texto. Gravar a multa como `REAL` reintroduziria a imprecisão do `double`, que foi evitada com `BigDecimal`. Enums são convertidos com `name()` e `valueOf()`.
+
+## D16 – Restrições no próprio banco
+**Decisão:** as tabelas usam `NOT NULL`, `UNIQUE` (CPF, matrícula, login, ISBN, código da cópia), `CHECK` (tipo de leitor) e chaves estrangeiras (`REFERENCES`).
+**Motivo:** além das validações feitas no Java, o banco garante a integridade dos dados como uma segunda linha de defesa: não aceita duplicatas, valores inválidos nem registros que apontem para outros inexistentes.
+
+## D17 – Criação automática das tabelas
+**Decisão:** a classe `InicializadorBanco` cria as tabelas com `CREATE TABLE IF NOT EXISTS` sempre que o programa inicia.
+**Motivo:** o sistema funciona em qualquer máquina sem configuração manual: na primeira execução o arquivo `biblioteca.db` e as tabelas são criados; nas seguintes, nada é alterado. O arquivo do banco não é versionado no Git, pois é gerado pelo próprio programa.
